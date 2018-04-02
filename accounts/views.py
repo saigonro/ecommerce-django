@@ -1,65 +1,73 @@
-from django.shortcuts import render, redirect
-from django.contrib import auth, messages
+from django.shortcuts import render, redirect, HttpResponseRedirect
+from django.contrib import messages, auth
+from django.core.urlresolvers import reverse
 from .forms import UserLoginForm, UserRegistrationForm
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 
-# =========== login view ==============
-def login(request):
-    redirect_to = request.GET.get('next', 'home')
-    if request.method == 'POST':
-        form = UserLoginForm(request.POST)
-        if form.is_valid():
-            #Authenticate the user
-            user = auth.authenticate(username = request.POST.get('username'), password = request.POST.get('password'))
-            if user is not None:
-                #if the user is a user, and has correct password
-                auth.login(request, user)
-                return redirect(redirect_to)
-                    #log them in
-            else:
-                form.add_error(None, "Your user name or password was not recognised")
-    else:
-        form = UserLoginForm()
-    return render(request, 'accounts/login.html', {'form': form})
-# =========== END login view ==============
 
-
-
-# =========== logout view ==============
+# Create your views here.
 def logout(request):
+    """A view that logs the user out and redirects back to the index page"""
     auth.logout(request)
-    messages.success(request, "You have sucessfully logged out")
-    return redirect("home")
-# =========== END logout view ==============
+    messages.success(request, 'You have successfully logged out')
+    return redirect(request.GET.get('next', 'home'))
 
 
-
-
-# =========== profile view ==============
-@login_required()
-def profile(request):
-    return render(request, 'accounts/profile.html')
-# =========== END profile view ==============
-
-
-
-
-# =========== register view ==============
-def register(request):
+def login(request):
+    """A view that manages the login form"""
     if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            user = auth.authenticate(username=request.POST.get('username'),
+        user_form = UserLoginForm(request.POST)
+        if user_form.is_valid():
+            user = auth.authenticate(username=request.POST['username_or_email'],
+                                     password=request.POST['password'])
+
+            if user:
+                auth.login(request, user)
+                messages.error(request, "You have successfully logged in")
+
+                if request.GET and request.GET['next'] !='':
+                    next = request.GET['next']
+                    return HttpResponseRedirect(next)
+                else:
+                    return redirect('home')
+            else:
+                user_form.add_error(None, "Your username or password are incorrect")
+    else:
+        user_form = UserLoginForm()
+
+    args = {'user_form': user_form, 'next': request.GET.get('next', '')}
+    return render(request, 'accounts/login.html', args)
+
+
+@login_required
+def profile(request):
+    """A view that displays the profile page of a logged in user"""
+    return render(request, 'accounts/profile.html')
+
+
+def register(request):
+    """A view that manages the registration form"""
+    if request.method == 'POST':
+        user_form = UserRegistrationForm(request.POST)
+        if user_form.is_valid():
+            user_form.save()
+
+            user = auth.authenticate(username=request.POST.get('email'),
                                      password=request.POST.get('password1'))
+
             if user:
                 auth.login(request, user)
                 messages.success(request, "You have successfully registered")
-                return redirect('profile')
+                
+                if request.GET and request.GET['next'] !='':
+                    next = request.GET['next']
+                    return HttpResponseRedirect(next)
+                else:
+                    return redirect('home')
             else:
                 messages.error(request, "unable to log you in at this time!")
     else:
-        form = UserRegistrationForm()
-    return render(request, 'accounts/register.html', {'form': form})
-# =========== END register view ==============
+        user_form = UserRegistrationForm()
+
+    args = {'user_form': user_form}
+    return render(request, 'accounts/register.html', args)

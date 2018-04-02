@@ -1,6 +1,7 @@
 from django.conf.urls import url, include
-from .views import *
+from .views import all_products, product_item
 
 urlpatterns = [
-    url(r'^products_list/', get_products_list, name='products_list'),
-    ]
+    url(r'^$', all_products, name='all_products'),
+    url(r'^(\d+)$', product_item, name='product_item'),
+]

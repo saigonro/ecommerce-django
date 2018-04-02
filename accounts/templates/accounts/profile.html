@@ -1,13 +1,5 @@
-{% extends 'home/base.html' %}
-{% load static %}
-
-{% block styles %}
-{{ block.super }}
-
-{% endblock styles %}
-
+{% extends "home/base.html" %}
 {% block content %}
-
-<h1>Profile.html</h1>
-
-{% endblock content %}
+    <h2>Success!</h2>
+    <p>You are logged in as {{ user.email }} </p>
+{% endblock %}
